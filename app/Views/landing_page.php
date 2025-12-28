@@ -653,6 +653,20 @@
                             <i class="fas fa-search" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Cari"></i>
                         </a>
                     </li>
+                    <?php if (session('user_id')): ?>
+                        <li class="nav-item dropdown ms-2">
+                            <a class="btn btn-danger dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user"></i> <?= esc(session('user_name')) ?>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="<?= base_url('logout') ?>">Logout</a></li>
+                            </ul>
+                        </li>
+                    <?php else: ?>
+                        <li class="nav-item ms-2">
+                            <a class="btn btn-danger" href="<?= base_url('login') ?>">Login</a>
+                        </li>
+                    <?php endif; ?>
                 </ul>
             </div>
         </div>

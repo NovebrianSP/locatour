@@ -194,6 +194,17 @@
 </section>
 
 <main class="container" style="margin-top: 40px;">
+    <div class="d-flex justify-content-end mb-3">
+        <div class="d-flex align-items-center gap-2">
+            <span class="fw-semibold">Tampilan</span>
+            <select id="viewSwitcher" class="form-select" style="width: 220px;">
+                <option value="detail" selected>Evaluasi detail</option>
+                <option value="comparison">Perbandingan bobot</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="view-detail">
     <div class="row g-4">
         <div class="col-lg-4">
             <div class="form-card">
@@ -304,6 +315,7 @@
             </div>
         </div>
     </div>
+    </div> <!-- end detail view -->
 
     <?php
         $scenarioRows = [
@@ -318,45 +330,47 @@
         ];
     ?>
 
-    <div class="row g-4 mt-4">
-        <div class="col-12">
-            <div class="table-wrap">
-                <table class="table eval-table mb-0">
-                    <thead>
-                        <tr>
-                            <th>Konfigurasi</th>
-                            <th>Content</th>
-                            <th>Collaborative</th>
-                            <th>Weather</th>
-                            <th>MAE</th>
-                            <th>RMSE</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($scenarioRows as $row): ?>
+    <div id="view-comparison" style="display: none;">
+        <div class="row g-4 mt-2">
+            <div class="col-12">
+                <div class="table-wrap">
+                    <table class="table eval-table mb-0">
+                        <thead>
                             <tr>
-                                <td class="config-name"><?= htmlspecialchars($row['name']) ?></td>
-                                <td><?= $row['content'] ?></td>
-                                <td><?= $row['collaborative'] ?></td>
-                                <td><?= $row['weather'] ?></td>
-                                <td><?= $row['mae'] !== null ? number_format($row['mae'], 4) : 'N/A' ?></td>
-                                <td><?= $row['rmse'] !== null ? number_format($row['rmse'], 4) : 'N/A' ?></td>
+                                <th>Konfigurasi</th>
+                                <th>Content</th>
+                                <th>Collaborative</th>
+                                <th>Weather</th>
+                                <th>MAE</th>
+                                <th>RMSE</th>
                             </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($scenarioRows as $row): ?>
+                                <tr>
+                                    <td class="config-name"><?= htmlspecialchars($row['name']) ?></td>
+                                    <td><?= $row['content'] ?></td>
+                                    <td><?= $row['collaborative'] ?></td>
+                                    <td><?= $row['weather'] ?></td>
+                                    <td><?= $row['mae'] !== null ? number_format($row['mae'], 4) : 'N/A' ?></td>
+                                    <td><?= $row['rmse'] !== null ? number_format($row['rmse'], 4) : 'N/A' ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="row g-4 mt-4">
-        <div class="col-12">
-            <div class="chart-card">
-                <h5 class="section-title">Visualisasi Error</h5>
-                <canvas id="errorChart" height="120"></canvas>
+        <div class="row g-4 mt-4">
+            <div class="col-12">
+                <div class="chart-card">
+                    <h5 class="section-title">Visualisasi Error</h5>
+                    <canvas id="errorChart" height="120"></canvas>
+                </div>
             </div>
         </div>
-    </div>
+    </div> <!-- end comparison view -->
 </main>
 
 <footer class="mt-5 py-4" style="background: #0b4f49; color: #e0f2f1;">
@@ -374,6 +388,24 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
+    // View switcher
+    const switcher = document.getElementById('viewSwitcher');
+    const detailView = document.getElementById('view-detail');
+    const comparisonView = document.getElementById('view-comparison');
+
+    function updateView() {
+        const v = switcher.value;
+        if (v === 'comparison') {
+            comparisonView.style.display = 'block';
+            detailView.style.display = 'none';
+        } else {
+            comparisonView.style.display = 'none';
+            detailView.style.display = 'block';
+        }
+    }
+    switcher?.addEventListener('change', updateView);
+    updateView();
+
     const scenarioData = <?= json_encode($scenarioRows) ?>;
     const labels = scenarioData.map(r => r.name);
     const maeData = scenarioData.map(r => r.mae);

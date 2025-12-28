@@ -28,13 +28,15 @@ class Home extends BaseController
     {
         // Get data from database for landing page
         // Weather-aware recommendations (general)
+        $userPref = session()->get('user_pref');
         $recs = $this->recommender->getHybridRecommendations(
             null,
             null,
             ['content' => 0.2, 'collaborative' => 0.2, 'weather' => 0.6],
             6,
             null,
-            true
+            true,
+            $userPref ?: null
         );
 
         $data = [
@@ -43,7 +45,8 @@ class Home extends BaseController
             'popular_places' => $this->getPopularPlaces(),
             'statistics' => $this->getStatistics(),
             'recommended_places' => $this->mapRecommendationsToCards($recs['results'] ?? []),
-            'recommendation_meta' => $recs['meta'] ?? []
+            'recommendation_meta' => $recs['meta'] ?? [],
+            'user_preference' => $userPref
         ];
 
         return view('landing_page', $data);

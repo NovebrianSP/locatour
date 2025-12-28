@@ -49,6 +49,9 @@ class Search extends BaseController
             'weather' => $searchResults['meta']['weather'] ?? []
         ];
 
+        // Persist latest preference to session for personalized landing recommendations
+        session()->set('user_pref', $data['preference']);
+
         return view('search_results', $data);
     }
 }
