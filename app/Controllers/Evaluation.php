@@ -29,10 +29,23 @@ class Evaluation extends BaseController
 
         $stats = $this->getDatasetStats();
 
+        $weightScenarios = [
+            'content' => ['content' => 1.0, 'collaborative' => 0.0, 'weather' => 0.0],
+            'collaborative' => ['content' => 0.0, 'collaborative' => 1.0, 'weather' => 0.0],
+            'weather' => ['content' => 0.1, 'collaborative' => 0.1, 'weather' => 0.8],
+            'hybrid' => ['content' => 0.2, 'collaborative' => 0.5, 'weather' => 0.3],
+        ];
+
+        $comparison = [];
+        foreach ($weightScenarios as $key => $weights) {
+            $comparison[$key] = $this->service->evaluateWeighting($weights, $k);
+        }
+
         return view('evaluation', [
             'k' => $k,
             'metrics' => $metrics,
             'stats' => $stats,
+            'comparison' => $comparison,
         ]);
     }
 

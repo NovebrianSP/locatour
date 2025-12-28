@@ -320,10 +320,34 @@
     <?php
         $scenarioRows = [
             [
-                'name' => 'current_run',
-                'content' => '—',
-                'collaborative' => '—',
-                'weather' => '—',
+                'name' => 'content_based',
+                'content' => 1.0,
+                'collaborative' => 0.0,
+                'weather' => 0.0,
+                'mae' => $comparison['content']['mae'] ?? null,
+                'rmse' => $comparison['content']['rmse'] ?? null,
+            ],
+            [
+                'name' => 'collaborative',
+                'content' => 0.0,
+                'collaborative' => 1.0,
+                'weather' => 0.0,
+                'mae' => $comparison['collaborative']['mae'] ?? null,
+                'rmse' => $comparison['collaborative']['rmse'] ?? null,
+            ],
+            [
+                'name' => 'weather_based',
+                'content' => 0.1,
+                'collaborative' => 0.1,
+                'weather' => 0.8,
+                'mae' => $comparison['weather']['mae'] ?? null,
+                'rmse' => $comparison['weather']['rmse'] ?? null,
+            ],
+            [
+                'name' => 'hybrid',
+                'content' => 0.2,
+                'collaborative' => 0.5,
+                'weather' => 0.3,
                 'mae' => $metrics['mae'],
                 'rmse' => $metrics['rmse'],
             ],
@@ -349,9 +373,9 @@
                             <?php foreach ($scenarioRows as $row): ?>
                                 <tr>
                                     <td class="config-name"><?= htmlspecialchars($row['name']) ?></td>
-                                    <td><?= $row['content'] ?></td>
-                                    <td><?= $row['collaborative'] ?></td>
-                                    <td><?= $row['weather'] ?></td>
+                                    <td><?= is_numeric($row['content']) ? number_format($row['content'], 2) : $row['content'] ?></td>
+                                    <td><?= is_numeric($row['collaborative']) ? number_format($row['collaborative'], 2) : $row['collaborative'] ?></td>
+                                    <td><?= is_numeric($row['weather']) ? number_format($row['weather'], 2) : $row['weather'] ?></td>
                                     <td><?= $row['mae'] !== null ? number_format($row['mae'], 4) : 'N/A' ?></td>
                                     <td><?= $row['rmse'] !== null ? number_format($row['rmse'], 4) : 'N/A' ?></td>
                                 </tr>

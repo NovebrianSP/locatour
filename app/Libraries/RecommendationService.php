@@ -592,4 +592,147 @@ class RecommendationService
             'k_neighbors' => $k,
         ];
     }
+
+    /**
+     * Evaluate hybrid weighting using a blend of content similarity, collaborative similarity, and weather suitability.
+     * Ratings source: tourism_ratings.place_ratings_normalized (assumed 0..1 scale).
+     */
+    public function evaluateWeighting(array $weights, int $k = 10): array
+    {
+        // Normalize weights
+        $k = max(1, min($k, 50));
+        $sum = array_sum($weights);
+        if ($sum <= 0) {
+            $weights = ['content' => 0.33, 'collaborative' => 0.34, 'weather' => 0.33];
+            $sum = 1.0;
+        }
+        foreach (['content','collaborative','weather'] as $key) {
+            $weights[$key] = ($weights[$key] ?? 0) / $sum;
+        }
+
+        // Load ratings
+        $rows = $this->db->table('tourism_ratings')->select('user_id, place_id, place_ratings_normalized')->get()->getResultArray();
+        if (empty($rows)) {
+            return [
+                'mae' => null,
+                'rmse' => null,
+                'tested_count' => 0,
+                'skipped_count' => 0,
+                'coverage' => 0.0,
+                'k_neighbors' => $k,
+                'weights' => $weights,
+            ];
+        }
+
+        // Build matrices
+        $users = [];
+        $items = [];
+        foreach ($rows as $r) { $users[$r['user_id']] = true; $items[$r['place_id']] = true; }
+        $users = array_keys($users); $items = array_keys($items);
+        $matrix = [];
+        foreach ($users as $u) { $matrix[$u] = array_fill_keys($items, 0.0); }
+        foreach ($rows as $r) { $matrix[$r['user_id']][$r['place_id']] = (float)$r['place_ratings_normalized']; }
+
+        // Collaborative similarity (rating-based)
+        $collabSim = $this->itemSimilarity($matrix, $items);
+
+        // Content similarity (TF-IDF)
+        $places = $this->db->table('tourism_places')->get()->getResultArray();
+        $docs = $this->buildDocuments($places);
+        $tfidf = $this->computeTfIdf($docs);
+        $contentSim = [];
+        foreach ($items as $i) { $contentSim[$i] = []; }
+        foreach ($items as $i) {
+            foreach ($items as $j) {
+                if ($i === $j) { $contentSim[$i][$j] = 1.0; continue; }
+                $vi = $tfidf[$i] ?? [];
+                $vj = $tfidf[$j] ?? [];
+                $contentSim[$i][$j] = $this->cosine($vi, $vj);
+            }
+        }
+
+        // Weather suitability per item
+        $weatherInfo = $this->getCurrentWeather();
+        $weatherScore = $this->calculateWeatherScore($weatherInfo);
+        $preference = $this->getWeatherPreference($weatherScore);
+        $weatherByItem = [];
+        $categoryByItem = [];
+        foreach ($places as $p) {
+            $categoryByItem[$p['place_id']] = $p['category'] ?? '';
+        }
+        foreach ($items as $pid) {
+            $cat = $categoryByItem[$pid] ?? '';
+            $weatherByItem[$pid] = $this->weatherSuitabilityScore($cat, $preference, $weatherScore);
+        }
+
+        $absSum = 0.0;
+        $sqSum = 0.0;
+        $tested = 0;
+        $skipped = 0;
+
+        foreach ($matrix as $userId => $userRatings) {
+            foreach ($userRatings as $itemId => $actual) {
+                if ($actual <= 0.0) continue;
+
+                $predContent = $this->predictWithSimilarity($itemId, $userRatings, $contentSim, $k);
+                $predCollab = $this->predictWithSimilarity($itemId, $userRatings, $collabSim, $k);
+                $predWeather = $weatherByItem[$itemId] ?? 0.5;
+
+                if ($predContent === null && $predCollab === null) {
+                    $skipped++;
+                    continue;
+                }
+
+                $pred = (
+                    $weights['content'] * ($predContent ?? 0.0) +
+                    $weights['collaborative'] * ($predCollab ?? 0.0) +
+                    $weights['weather'] * $predWeather
+                );
+
+                $err = $pred - $actual;
+                $absSum += abs($err);
+                $sqSum += $err * $err;
+                $tested++;
+            }
+        }
+
+        $mae = $tested > 0 ? $absSum / $tested : null;
+        $rmse = $tested > 0 ? sqrt($sqSum / $tested) : null;
+        $coverage = ($tested + $skipped) > 0 ? $tested / ($tested + $skipped) : 0.0;
+
+        return [
+            'mae' => $mae !== null ? round($mae, 4) : null,
+            'rmse' => $rmse !== null ? round($rmse, 4) : null,
+            'tested_count' => $tested,
+            'skipped_count' => $skipped,
+            'coverage' => round($coverage, 4),
+            'k_neighbors' => $k,
+            'weights' => $weights,
+        ];
+    }
+
+    /**
+     * Predict a rating for a given item using similarity and user ratings.
+     */
+    protected function predictWithSimilarity(string $itemId, array $userRatings, array $simMatrix, int $k): ?float
+    {
+        $neighbors = [];
+        foreach ($userRatings as $otherItem => $rating) {
+            if ($otherItem === $itemId || $rating <= 0.0) continue;
+            $neighbors[] = [
+                'sim' => $simMatrix[$itemId][$otherItem] ?? 0.0,
+                'rating' => $rating,
+            ];
+        }
+        if (empty($neighbors)) return null;
+        usort($neighbors, static fn($a, $b) => $b['sim'] <=> $a['sim']);
+        $neighbors = array_slice($neighbors, 0, $k);
+        $num = 0.0; $den = 0.0;
+        foreach ($neighbors as $n) {
+            $num += $n['rating'] * $n['sim'];
+            $den += abs($n['sim']);
+        }
+        if ($den === 0.0) return null;
+        return $num / $den;
+    }
 }
