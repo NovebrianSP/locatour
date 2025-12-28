@@ -167,11 +167,12 @@ class Home extends BaseController
     private function getStatistics()
     {
         $stats = $this->tourismModel->getStatistics();
-        
+        $categoryCount = $this->categoryModel->countAll();
+
         return [
             'total_places' => $stats['total_places'] ?? 0,
             'avg_rating' => $stats['avg_rating'] ?? 0,
-            'total_categories' => $stats['total_categories'] ?? 0,
+            'total_categories' => $categoryCount,
             'total_visitors' => '1M+' // Static value
         ];
     }

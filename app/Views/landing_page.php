@@ -792,7 +792,7 @@
     <section class="stats-section">
         <div class="container">
             <div class="row">
-                <div class="col-md-3 col-sm-6">
+                <div class="col-md-4 col-sm-6">
                     <div class="stat-card">
                         <div class="stat-icon">
                             <i class="fas fa-map-marker-alt"></i>
@@ -801,7 +801,7 @@
                         <div class="stat-label">Destinasi Wisata</div>
                     </div>
                 </div>
-                <div class="col-md-3 col-sm-6">
+                <div class="col-md-4 col-sm-6">
                     <div class="stat-card">
                         <div class="stat-icon">
                             <i class="fas fa-star"></i>
@@ -810,7 +810,7 @@
                         <div class="stat-label">Rating Rata-Rata</div>
                     </div>
                 </div>
-                <div class="col-md-3 col-sm-6">
+                <div class="col-md-4 col-sm-6">
                     <div class="stat-card">
                         <div class="stat-icon">
                             <i class="fas fa-list"></i>
@@ -819,15 +819,6 @@
                         <div class="stat-label">Kategori</div>
                     </div>
                 </div>
-                <!-- <div class="col-md-3 col-sm-6">
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="stat-number"><?= $statistics['total_visitors'] ?></div>
-                        <div class="stat-label">Pengunjung</div>
-                    </div>
-                </div> -->
             </div>
         </div>
     </section>
