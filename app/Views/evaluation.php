@@ -321,17 +321,17 @@
         $scenarioRows = [
             [
                 'name' => 'content_based',
-                'content' => 1.0,
+                'content' => 0.6,
                 'collaborative' => 0.0,
-                'weather' => 0.0,
+                'weather' => 0.4,
                 'mae' => $comparison['content']['mae'] ?? null,
                 'rmse' => $comparison['content']['rmse'] ?? null,
             ],
             [
                 'name' => 'collaborative',
                 'content' => 0.0,
-                'collaborative' => 1.0,
-                'weather' => 0.0,
+                'collaborative' => 0.6,
+                'weather' => 0.4,
                 'mae' => $comparison['collaborative']['mae'] ?? null,
                 'rmse' => $comparison['collaborative']['rmse'] ?? null,
             ],
@@ -346,10 +346,10 @@
             [
                 'name' => 'hybrid',
                 'content' => 0.2,
-                'collaborative' => 0.5,
-                'weather' => 0.3,
-                'mae' => $metrics['mae'],
-                'rmse' => $metrics['rmse'],
+                'collaborative' => 0.6,
+                'weather' => 0.2,
+                'mae' => $comparison['hybrid']['mae'] ?? null,
+                'rmse' => $comparison['hybrid']['rmse'] ?? null,
             ],
         ];
     ?>
@@ -445,12 +445,12 @@
                     {
                         label: 'MAE',
                         data: maeData,
-                        backgroundColor: '#f6ad55',
+                        backgroundColor: '#36eb9aff',
                     },
                     {
                         label: 'RMSE',
                         data: rmseData,
-                        backgroundColor: '#f87171',
+                        backgroundColor: '#185b25ff',
                     }
                 ]
             },
@@ -459,6 +459,7 @@
                 scales: {
                     y: {
                         beginAtZero: true,
+                        max: 1.0,
                         ticks: { precision: 2 }
                     }
                 }
