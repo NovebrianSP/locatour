@@ -33,7 +33,7 @@ class Evaluation extends BaseController
             'content' => ['content' => 1.0, 'collaborative' => 0.0, 'weather' => 0.0],
             'collaborative' => ['content' => 0.0, 'collaborative' => 1.0, 'weather' => 0.0],
             'weather' => ['content' => 0.1, 'collaborative' => 0.1, 'weather' => 0.8],
-            'hybrid' => ['content' => 0.2, 'collaborative' => 0.5, 'weather' => 0.3],
+            'hybrid' => ['content' => 0.2, 'collaborative' => 0.6, 'weather' => 0.2],
         ];
 
         $comparison = [];
