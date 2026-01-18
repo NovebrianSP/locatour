@@ -754,15 +754,21 @@
         <div class="container">
             <h2 class="section-title">Rekomendasi Untuk Anda</h2>
             <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
-                <p class="section-subtitle mb-0">
-                    Berdasarkan cuaca — Preferensi:
-                    <span id="prefBadge" class="badge bg-warning text-dark" style="font-size: 0.95rem;"><?= isset($recommendation_meta['preference']) ? ucfirst($recommendation_meta['preference']) : 'Mixed' ?></span>
-                </p>
-                <div class="btn-group" role="group" aria-label="Your Preferences">
-                    <button type="button" class="btn btn-outline-secondary" data-pref="mixed">Campuran</button>
-                    <button type="button" class="btn btn-outline-secondary" data-pref="outdoor">Outdoor</button>
-                    <button type="button" class="btn btn-outline-secondary" data-pref="indoor">Indoor</button>
-                </div>
+                <?php if (!empty($is_logged_in) && ($recommendation_mode ?? 'weather') === 'personalized'): ?>
+                    <p class="section-subtitle mb-0">
+                        Berdasarkan aktivitas dan preferensi akun Anda.
+                    </p>
+                <?php else: ?>
+                    <p class="section-subtitle mb-0">
+                        Berdasarkan cuaca — Preferensi:
+                        <span id="prefBadge" class="badge bg-warning text-dark" style="font-size: 0.95rem;">&nbsp;<?= isset($recommendation_meta['preference']) ? ucfirst($recommendation_meta['preference']) : 'Mixed' ?></span>
+                    </p>
+                    <div class="btn-group" role="group" aria-label="Your Preferences">
+                        <button type="button" class="btn btn-outline-secondary" data-pref="mixed">Campuran</button>
+                        <button type="button" class="btn btn-outline-secondary" data-pref="outdoor">Outdoor</button>
+                        <button type="button" class="btn btn-outline-secondary" data-pref="indoor">Indoor</button>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <div class="row" id="recommendedGrid">
@@ -1021,6 +1027,10 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        const APP_USER_ID = <?= isset($user_id) && $user_id ? (int)$user_id : 'null' ?>;
+        const RECOMMENDATION_MODE = '<?= esc($recommendation_mode ?? 'weather', 'js') ?>';
+        const USER_PREF_PROFILE = <?= json_encode($user_preference_profile ?? []) ?>;
+
         // Smooth scroll behavior
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
@@ -1120,12 +1130,22 @@
             sync();
         })();
 
-        // Optional: personalize recommendations if user_id query param present
+        // Optional: personalize recommendations (align with server-side profile)
         (function personalizeRecs(){
-            const params = new URLSearchParams(window.location.search);
-            const userId = params.get('user_id');
-            if (!userId) return;
-            fetch(`/recs/personalized/${encodeURIComponent(userId)}?top_n=6`).then(r=>r.json()).then(json=>{
+            if (RECOMMENDATION_MODE !== 'personalized' || !APP_USER_ID) return;
+            const qs = new URLSearchParams({
+                user_id: String(APP_USER_ID),
+                top_n: '6',
+                w_content: '0.2',
+                w_collab: '0.5',
+                w_weather: '0.3'
+            });
+            const category = USER_PREF_PROFILE?.preferred_category || '';
+            const pref = USER_PREF_PROFILE?.indoor_outdoor_pref || '';
+            if (category) qs.set('category', category);
+            if (pref) qs.set('pref', pref);
+
+            fetch(`/recs/hybrid?${qs.toString()}`).then(r=>r.json()).then(json=>{
                 const list = (json && json.results) ? json.results : [];
                 if (!Array.isArray(list) || list.length === 0) return;
                 const grid = document.getElementById('recommendedGrid');
@@ -1164,8 +1184,7 @@
             const group = document.querySelector('#recommended .btn-group');
             const badge = document.getElementById('prefBadge');
             const grid = document.getElementById('recommendedGrid');
-            const params = new URLSearchParams(window.location.search);
-            const userId = params.get('user_id');
+            if (RECOMMENDATION_MODE !== 'weather') return;
             if (!group || !grid) return;
             group.querySelectorAll('button[data-pref]').forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -1178,7 +1197,6 @@
                         w_weather: '0.6',
                         pref
                     });
-                    if (userId) qs.set('user_id', userId);
                     fetch(`/recs/hybrid?${qs.toString()}`)
                         .then(r => r.json())
                         .then(json => {

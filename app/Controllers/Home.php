@@ -27,16 +27,27 @@ class Home extends BaseController
     public function index(): string
     {
         // Get data from database for landing page
-        // Weather-aware recommendations (general)
         $userPref = session()->get('user_pref');
+        $userId = session()->get('user_id');
+        $isLoggedIn = $userId !== null;
+
+        $prefProfile = $isLoggedIn ? $this->getUserPreferenceProfile((int)$userId) : [];
+        $prefCategory = $prefProfile['preferred_category'] ?? null;
+        $prefIndoorOutdoor = $prefProfile['indoor_outdoor_pref'] ?? null;
+
+        // Use weather-first for guests, personalized hybrid for logged-in users
+        $weights = $isLoggedIn
+            ? ['content' => 0.2, 'collaborative' => 0.5, 'weather' => 0.3]
+            : ['content' => 0.2, 'collaborative' => 0.2, 'weather' => 0.6];
+
         $recs = $this->recommender->getHybridRecommendations(
+            $isLoggedIn ? (int)$userId : null,
             null,
-            null,
-            ['content' => 0.2, 'collaborative' => 0.2, 'weather' => 0.6],
+            $weights,
             6,
-            null,
+            $prefCategory,
             true,
-            $userPref ?: null
+            $isLoggedIn ? ($prefIndoorOutdoor ?: null) : ($userPref ?: null)
         );
 
         $data = [
@@ -46,10 +57,34 @@ class Home extends BaseController
             'statistics' => $this->getStatistics(),
             'recommended_places' => $this->mapRecommendationsToCards($recs['results'] ?? []),
             'recommendation_meta' => $recs['meta'] ?? [],
-            'user_preference' => $userPref
+            'user_preference' => $userPref,
+            'is_logged_in' => $isLoggedIn,
+            'user_id' => $isLoggedIn ? (int)$userId : null,
+            'recommendation_mode' => $isLoggedIn ? 'personalized' : 'weather',
+            'user_preference_profile' => $prefProfile
         ];
 
         return view('landing_page', $data);
+    }
+
+    /**
+     * Fetch stored user preference profile (search history, category, indoor/outdoor)
+     */
+    private function getUserPreferenceProfile(int $userId): array
+    {
+        $row = Database::connect()->table('user_preferences')->where('user_id', $userId)->get()->getRowArray();
+        if (!$row) return [];
+
+        $categories = json_decode($row['preferred_categories'] ?? '[]', true) ?: [];
+        $history = json_decode($row['search_history'] ?? '[]', true) ?: [];
+
+        return [
+            'preferred_category' => $categories[0] ?? null,
+            'categories' => $categories,
+            'search_history' => $history,
+            'indoor_outdoor_pref' => $row['indoor_outdoor_pref'] ?? null,
+            'raw' => $row,
+        ];
     }
 
     /**
